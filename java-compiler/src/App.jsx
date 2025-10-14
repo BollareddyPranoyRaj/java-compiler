@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import CodeEditor from './components/CodeEditor';
-import Console from './components/Console';
+import CodeEditor from './CodeEditor';
+import Console from './Console';
 
 
 export default function App(){
