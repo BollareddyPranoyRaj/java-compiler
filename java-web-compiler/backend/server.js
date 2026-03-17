@@ -6,20 +6,22 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 
-// Re-creating __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-// This tells the backend to specifically trust your frontend's address
+
+// UPDATE 1: Robust CORS Configuration
+// This explicitly allows your frontend port and handles preflight automatically
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'], // Covers both default Vite ports
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true
 }));
+
 app.use(express.json());
 
-// Create a directory for temporary Java files if it doesn't exist
 const tempDir = path.join(__dirname, 'temp');
 if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir);
@@ -28,48 +30,52 @@ if (!fs.existsSync(tempDir)) {
 app.post('/api/run', (req, res) => {
     const { code, stdin } = req.body;
     
-    // 1. Generate a unique ID for this execution
+    if (!code) {
+        return res.status(400).json({ stderr: "No code provided" });
+    }
+
     const id = uuidv4();
     const folderPath = path.join(tempDir, id);
-    fs.mkdirSync(folderPath);
+    
+    try {
+        fs.mkdirSync(folderPath);
+        const filePath = path.join(folderPath, 'Main.java');
+        fs.writeFileSync(filePath, code);
 
-    // 2. Save the code into Main.java
-    const filePath = path.join(folderPath, 'Main.java');
-    fs.writeFileSync(filePath, code);
+        // UPDATE 2: Improved Command Strings
+        // Using quotes around paths to handle spaces in folder names
+        const compileCmd = `javac "${filePath}"`;
+        const runCmd = `java -cp "${folderPath}" Main`;
 
-    // 3. Command to Compile and Run
-    const compileCmd = `javac "${filePath}"`;
-    const runCmd = `java -cp "${folderPath}" Main`;
-
-    exec(compileCmd, (compileError, stdout, stderr) => {
-        if (compileError) {
-            // Cleanup on compilation failure
-            fs.rmSync(folderPath, { recursive: true, force: true });
-            return res.json({ stdout: "", stderr: stderr || compileError.message, exitCode: 1 });
-        }
-
-        // 4. Compilation successful, now run it
-        const child = exec(runCmd, { timeout: 5000 }, (runError, runStdout, runStderr) => {
-            // Cleanup: Delete the folder and files after execution
-            fs.rmSync(folderPath, { recursive: true, force: true });
-
-            if (runError && runError.killed) {
-                return res.json({ stdout: "", stderr: "Execution Timed Out (5s limit)", exitCode: 124 });
+        exec(compileCmd, (compileError, stdout, stderr) => {
+            if (compileError) {
+                fs.rmSync(folderPath, { recursive: true, force: true });
+                return res.json({ stdout: "", stderr: stderr || compileError.message, exitCode: 1 });
             }
 
-            res.json({
-                stdout: runStdout,
-                stderr: runStderr,
-                exitCode: runError ? runError.code : 0
-            });
-        });
+            const child = exec(runCmd, { timeout: 5000 }, (runError, runStdout, runStderr) => {
+                fs.rmSync(folderPath, { recursive: true, force: true });
 
-        // 5. Pass stdin to the Java process if provided
-        if (stdin) {
-            child.stdin.write(stdin);
-            child.stdin.end();
-        }
-    });
+                if (runError && runError.killed) {
+                    return res.json({ stdout: "", stderr: "Execution Timed Out (5s limit)", exitCode: 124 });
+                }
+
+                res.json({
+                    stdout: runStdout,
+                    stderr: runStderr,
+                    exitCode: runError ? runError.code : 0
+                });
+            });
+
+            if (stdin) {
+                child.stdin.write(stdin);
+                child.stdin.end();
+            }
+        });
+    } catch (err) {
+        console.error("Server Error:", err);
+        res.status(500).json({ stderr: "Internal Server Error during execution" });
+    }
 });
 
 const PORT = 5000;

@@ -13,29 +13,41 @@ export default function App() {
   const [running, setRunning] = useState(false);
 
   async function runCode() {
-    setRunning(true);
-    setOutput("Compiling and running...");
-    try {
-      // Note: Make sure your Vite proxy is set to localhost:5000
-      const response = await fetch("/api/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, stdin })
-      });
+  setRunning(true);
+  setOutput("Compiling and running...");
+  try {
+    const response = await fetch("http://127.0.0.1:5000/api/run", {
+      method: "POST",
+      mode: "cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, stdin })
+    });
 
-      const json = await response.json();
-      const parts = [];
-      if (json.stdout) parts.push(json.stdout);
-      if (json.stderr) parts.push("ERROR:\n" + json.stderr);
-      
-      setOutput(parts.join("\n") || "No output.");
-    } catch (error) {
-      setOutput(`Error: ${error.message}`);
-    } finally {
-      setRunning(false);
+    // Check if the response is OK and if it's actually JSON
+    const contentType = response.headers.get("content-type");
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Server Error (${response.status}): ${errorText}`);
     }
-  }
 
+    if (!contentType || !contentType.includes("application/json")) {
+      const plainText = await response.text();
+      throw new Error(`Expected JSON but got: ${plainText.substring(0, 100)}...`);
+    }
+
+    const json = await response.json();
+    const parts = [];
+    if (json.stdout) parts.push(json.stdout);
+    if (json.stderr) parts.push("ERROR:\n" + json.stderr);
+    
+    setOutput(parts.join("\n") || "No output.");
+  } catch (error) {
+    console.error("Fetch error:", error);
+    setOutput(`Error: ${error.message}`);
+  } finally {
+    setRunning(false);
+  }
+}
   // Improved Trim function to replace the broken formatter
   function trimCode() {
     const trimmed = code.split('\n').map(line => line.trimEnd()).join('\n').trim();
