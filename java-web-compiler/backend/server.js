@@ -1,11 +1,12 @@
-const express = require('express');
-const cors = require('cors');
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+import express from 'express';
+import cors from 'cors';
+import { exec } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { v4 as uuidv4 } from 'uuid';
 
-// These two lines are needed to make __dirname work in ESM mode
+// Re-creating __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -22,26 +23,27 @@ if (!fs.existsSync(tempDir)) {
 app.post('/api/run', (req, res) => {
     const { code, stdin } = req.body;
     
-    // 1. Generate a unique ID for this execution to avoid file conflicts
+    // 1. Generate a unique ID for this execution
     const id = uuidv4();
     const folderPath = path.join(tempDir, id);
     fs.mkdirSync(folderPath);
 
-    // 2. Save the code into Main.java (Assuming class name is Main)
+    // 2. Save the code into Main.java
     const filePath = path.join(folderPath, 'Main.java');
     fs.writeFileSync(filePath, code);
 
     // 3. Command to Compile and Run
-    // We use a timeout to prevent infinite loops (e.g., while(true))
-    const compileCmd = `javac ${filePath}`;
-    const runCmd = `java -cp ${folderPath} Main`;
+    const compileCmd = `javac "${filePath}"`;
+    const runCmd = `java -cp "${folderPath}" Main`;
 
     exec(compileCmd, (compileError, stdout, stderr) => {
         if (compileError) {
+            // Cleanup on compilation failure
+            fs.rmSync(folderPath, { recursive: true, force: true });
             return res.json({ stdout: "", stderr: stderr || compileError.message, exitCode: 1 });
         }
 
-        // Compilation successful, now run it
+        // 4. Compilation successful, now run it
         const child = exec(runCmd, { timeout: 5000 }, (runError, runStdout, runStderr) => {
             // Cleanup: Delete the folder and files after execution
             fs.rmSync(folderPath, { recursive: true, force: true });
@@ -57,7 +59,7 @@ app.post('/api/run', (req, res) => {
             });
         });
 
-        // Pass stdin to the Java process
+        // 5. Pass stdin to the Java process if provided
         if (stdin) {
             child.stdin.write(stdin);
             child.stdin.end();
@@ -65,5 +67,5 @@ app.post('/api/run', (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+const PORT = 5000;
+app.listen(PORT, () => console.log(`🚀 Backend running on http://localhost:${PORT}`));
