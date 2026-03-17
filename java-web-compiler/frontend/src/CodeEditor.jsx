@@ -1,4 +1,5 @@
 import Editor from "@monaco-editor/react";
+import PropTypes from "prop-types";
 
 export default function CodeEditor({ code, onChange }) {
   return (
@@ -17,3 +18,8 @@ export default function CodeEditor({ code, onChange }) {
     />
   );
 }
+
+CodeEditor.propTypes = {
+  code: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+};
