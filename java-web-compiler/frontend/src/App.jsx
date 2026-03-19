@@ -16,12 +16,11 @@ export default function App() {
   setRunning(true);
   setOutput("Compiling and running...");
   try {
-    const response = await fetch("http://127.0.0.1:5000/api/run", {
+    const response = await fetch("/api/run", {
       method: "POST",
-      mode: "cors",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code, stdin })
-    });
+    }); 
 
     // Check if the response is OK and if it's actually JSON
     const contentType = response.headers.get("content-type");

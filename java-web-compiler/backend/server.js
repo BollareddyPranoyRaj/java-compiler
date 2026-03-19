@@ -10,16 +10,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const allowedOrigins = new Set([
+    'http://localhost:5174',
+    'http://127.0.0.1:5174',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+]);
 
-// UPDATE 1: Robust CORS Configuration
-// This explicitly allows your frontend port and handles preflight automatically
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'],
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true
-}));
+    origin(origin, callback) {
+        // Allow browserless requests and known local dev frontends.
+        if (!origin || allowedOrigins.has(origin)) {
+            return callback(null, true);
+        }
 
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type']
+}));
 app.use(express.json());
 
 const tempDir = path.join(__dirname, 'temp');
@@ -59,7 +68,7 @@ app.post('/api/run', (req, res) => {
                 if (runError && runError.killed) {
                     return res.json({ stdout: "", stderr: "Execution Timed Out (5s limit)", exitCode: 124 });
                 }
-
+                
                 res.json({
                     stdout: runStdout,
                     stderr: runStderr,
@@ -77,6 +86,8 @@ app.post('/api/run', (req, res) => {
         res.status(500).json({ stderr: "Internal Server Error during execution" });
     }
 });
-
+app.get("/", (req, res) => {
+  res.send("Backend is working 🚀");
+});
 const PORT = 5000;
 app.listen(PORT, () => console.log(`🚀 Backend running on http://localhost:${PORT}`));
