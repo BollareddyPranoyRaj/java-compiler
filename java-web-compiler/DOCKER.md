@@ -34,7 +34,7 @@ Backend running on http://0.0.0.0:5000
 Your backend will then be available at:
 
 ```bash
-http://localhost:5000
+http://localhost:5001
 ```
 
 ## 3. Run the frontend
