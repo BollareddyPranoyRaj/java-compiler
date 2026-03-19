@@ -27,6 +27,59 @@ body {
   border-bottom: 1px solid #333;
 }
 
+.app-header {
+  padding: 16px 20px;
+  gap: 16px;
+}
+
+.header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.header-title-group h1 {
+  margin: 0;
+}
+
+.language-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #151515;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.language-picker label {
+  color: #9cdcfe;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.language-picker select {
+  background: #252526;
+  color: #ffffff;
+  border: 1px solid #3c3c3c;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+}
+
+.compiler-layout {
+  display: flex;
+  height: 80vh;
+}
+
+.compiler-sidebar {
+  flex: 1;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
 button {
   background-color: #0e639c;
   color: white;
@@ -47,4 +100,20 @@ textarea {
   border: 1px solid #333;
   padding: 10px;
   font-family: 'Courier New', Courier, monospace;
+}
+
+@media (max-width: 900px) {
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .compiler-layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .editor-area {
+    min-height: 50vh;
+  }
 }
