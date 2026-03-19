@@ -3,11 +3,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
+    command: ["nodemon", "--legacy-watch", "--watch", "backend", "backend/server.js"]
     ports:
       - "5001:5000"
     environment:
+      NODE_ENV: development
       HOST: 0.0.0.0
       PORT: 5000
+    volumes:
+      - ./backend:/app/backend
     tmpfs:
       - /app/backend/temp:size=64m,uid=1000,gid=1000,mode=1777,exec
-    restart: unless-stopped

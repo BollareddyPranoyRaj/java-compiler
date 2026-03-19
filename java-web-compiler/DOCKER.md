@@ -25,6 +25,12 @@ cd /Users/bollareddypranoyraj/java-compiler-2/java-web-compiler
 docker compose up --build backend
 ```
 
+For development with automatic backend restarts on save:
+
+```bash
+docker compose -f docker-compose.dev.yml up --build backend
+```
+
 When it works, you should see:
 
 ```bash
@@ -64,6 +70,14 @@ Rebuild after backend changes:
 docker compose up --build backend
 ```
 
+For backend code changes only in dev mode, just save the file and `nodemon` will restart automatically inside Docker.
+
+If you change `Dockerfile.backend` or install new tools, rebuild with:
+
+```bash
+docker compose -f docker-compose.dev.yml up --build backend
+```
+
 Run in background:
 
 ```bash
@@ -76,10 +90,22 @@ See logs:
 docker compose logs -f backend
 ```
 
+Dev mode logs:
+
+```bash
+docker compose -f docker-compose.dev.yml logs -f backend
+```
+
 Stop and remove containers:
 
 ```bash
 docker compose down
+```
+
+Stop dev mode:
+
+```bash
+docker compose -f docker-compose.dev.yml down
 ```
 
 ## Why this helps
